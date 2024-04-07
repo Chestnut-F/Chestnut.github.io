@@ -1,25 +1,22 @@
 # Site settings
-title: Chestnut Blog
-SEOTitle: Chestnut的博客 | Chestnut Blog
-# header-img: img/home-bg.jpg
-# email: lelefeng1992@gmail.com
+title: Your Blog
+SEOTitle: 你的博客 | Your Blog
+header-img: img/home-bg.jpg
+email: huxpro@gmail.com
 description: ""
 keyword: ""
-url: "chestnut-f.github.io"              # your host, for absolute URL
-baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
+url: "http://huangxuan.me"              # your host, for absolute URL
+baseurl: "/huxblog-boilerplate"         # for example, '/blog' if your blog hosted on 'host/blog'
 
-# Publish posts or collection documents with a future date.
-future: true
+
 
 # SNS settings
-# RSS: true
-#weibo_username:     2776591135
-# douban_username:    69635011
-# zhihu_username:     lele-feng-15
-# github_username:    candycat1992
-# twitter_username:   candycat1992
-#facebook_username:  huxpro
-#linkedin_username:  firstname-lastname-idxxxx
+RSS: false
+weibo_username:     huxpro
+zhihu_username:     huxpro
+github_username:    huxpro
+#twitter_username:  huxpro
+facebook_username:  huxpro
 
 
 
@@ -28,18 +25,14 @@ future: true
 highlighter: rouge
 permalink: pretty
 paginate: 10
-exclude: ["less","node_modules","Gruntfile.js","package.json","README.md","README.zh.md"]
+exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
-# If you have timezone issue (e.g. #68) in China, uncomment to use this:
-#timezone: CN  
 
 
 
 # Gems
 # from PR#40, to support local preview for Jekyll 3.0
-# make sure you have this gem installed
-# `$ gem install jekyll-paginate`
-plugins: [jekyll-paginate]
+gems: [jekyll-paginate]
 
 
 
@@ -50,45 +43,33 @@ plugins: [jekyll-paginate]
 markdown: kramdown
 kramdown:
   input: GFM                            # use Github Flavored Markdown !important
-  syntax_highlighter_opts:
-    span:
-      line_numbers: false
-    block:
-      line_numbers: true
-      start_line: 1
 
 
 
 # Disqus settings
-#disqus_username: hux
+#disqus_username: _your_disqus_short_name_
 
+# Duoshuo settings
+duoshuo_username: huxblog
+# Share component is depend on Comment so we can NOT use share only.
+duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
-
-# Netease settings
-netease_comment: false
-
-
-
-# LiveRe setttings
-# You can get your uid from https://livere.com/insight/myCode (General web site)
-# livere_uid: MTAyMC8yODg4Mi81NDUy
 
 
 
 # Analytics settings
-# Baidu Analytics 
-# ba_track_id: 207a182a0a79e8a76bfd02381045166f
-
+# Baidu Analytics
+ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
 # Google Analytics
-#ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-#ga_domain: huangxuan.me
+ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+ga_domain: huangxuan.me
 
 
 
 # Sidebar settings
-# sidebar: true                           # whether or not using Sidebar.
-# sidebar-about-description: "「一只喜欢计算机图形的程序媛，爱好写shader、写博客，喜欢用计算机来绘制各种五彩缤纷的画面」"
-# sidebar-avatar: /img/avatar-girl.jpg    # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar: true                           # whether or not using Sidebar.
+sidebar-about-description: "写写代码，做做设计，看看产品。世界那么大，多玩玩看看。"
+sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
@@ -98,27 +79,22 @@ featured-condition-size: 1              # A tag will be featured if the size of 
 
 
 
-# Progressive Web Apps
-chrome-tab-theme-color: "#000000"
-service-worker: true
-
-
-
-# MathJax rendering for layout:page (e.g. post preview)
-page-mathjax: false
-
-
-
 # Friends
-# friends: [
-#     {
-#         title: "Kingdom的Blog",
-#         href: "https://kingdom017.me/"
-#     },{
-#         title: "疯草莓的Blog",
-#         href: "http://madstrawberry.me/"
-#     },{
-#         title: "Kanglai的Blog",
-#         href: "http://qiankanglai.me/"
-#     }
-# ]
+friends: [
+    {
+        title: "Hux Blog",
+        href: "http://huangxuan.me"
+    },{
+        title: "Foo",
+        href: "#"
+    },{
+        title: "Bar",
+        href: "#"
+    },{
+        title: "Example Friends",
+        href: "#"
+    },{
+        title: "It helps SEO",
+        href: "#"
+    }
+]
