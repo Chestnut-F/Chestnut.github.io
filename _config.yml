@@ -2,7 +2,7 @@ title:              First Blog
 email:              cheng_junhan@outlook.com
 description:        A Test Blog Theme by Start Bootstrap
 author:             Chestnut
-baseurl:            "/clean-blog-jekyll"
+baseurl:            ""
 url:                "https://chestnut-f.github.io"
 
 # Social Profiles
