@@ -28,14 +28,6 @@
             color: $cyan !important;
         }
     }
-    .tags{
-        a{
-            border-color: $gray-700;
-            &:hover, &:active{
-                border-color: $cyan;
-            }
-        }
-    }
     .short-about{
         img{
             width: 80%;
