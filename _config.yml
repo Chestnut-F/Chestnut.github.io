@@ -1,6 +1,6 @@
-title:              First Blog
+title:              Chestnut Blog
 email:              cheng_junhan@outlook.com
-description:        A Test Blog Theme by Start Bootstrap
+description:        一个野生的游戏程序猿
 author:             Chestnut
 baseurl:            ""
 url:                "https://chestnut-f.github.io"
@@ -12,12 +12,21 @@ url:                "https://chestnut-f.github.io"
 # instagram_username:  
 # linkedin_username:
 
-# Add your google-analytics ID here to activate google analytics
-google_analytics:   UA-XXXXXXXXX-X # out your google-analytics code
-
 # Build settings
 markdown:           kramdown
-paginate:           5
+kramdown:
+  input: GFM                            # use Github Flavored Markdown !important
+
+highlighter: pygments
+permalink: pretty
+paginate:           10
 paginate_path:      "/posts/page:num/"
 plugins:
   - jekyll-paginate
+anchorjs: true # if you want to customize anchor. check out line:181 of `post.html`
+
+
+# Sidebar settings
+sidebar: true                           # whether or not using Sidebar.
+sidebar-about-description: "一个野生的游戏程序猿"
+sidebar-avatar: /img/avatar.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
