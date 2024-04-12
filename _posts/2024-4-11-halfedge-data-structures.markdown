@@ -54,7 +54,7 @@ struct HE_face
 
 工作还是效率为主，半边数据结构本身是很有用的数据结构，虚幻引擎有多半现成的，实际一搜确实不少相关，不过没有很方便的可以直接使用的，最后还是要自己写一下。
 
-先检查下虚幻引擎的AVolume，虚幻的AVolume的继承是ABrush，数据则存储在UModel类中，编辑器下UModel大致结构如下：
+先检查下虚幻引擎的AVolume，虚幻的AVolume是继承ABrush的，数据则存储在UModel类中，编辑器下UModel大致结构如下：
 
 ```
 class UModel : public UObject
