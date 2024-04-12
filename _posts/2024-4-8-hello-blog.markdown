@@ -4,7 +4,7 @@ title:      "我的独立博客开通的"
 subtitle:   "第一篇"
 date:       2024-04-09 01:01:13 +0800
 author:     "Chestnut"
-background: '/img/posts/06.jpg'
+header-img: 'img/bg-stardew-valley.jpg'
 tags:
     - 闲谈
 ---
