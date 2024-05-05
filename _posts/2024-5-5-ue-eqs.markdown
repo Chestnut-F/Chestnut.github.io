@@ -1,0 +1,151 @@
+---
+layout:     post
+title:      "【AI】EQS的性能问题记录"
+subtitle:   ""
+date:       2024-05-05 15:14:00 +0800
+author:     "Chestnut"
+header-img: 'img/bg-stardew-valley.jpg'
+tags:
+    - 笔记
+    - 虚幻
+---
+
+## 前言
+
+项目深度应用了虚幻4的EQS系统，性能问题严重，需要处理。仔细调研了一遍EQS的代码之后，只能感慨下这么多年它还是试验性功能是有原因的。好用是真的好用，但是坑也是真的多。本文记录下对EQS的性能优化方案，以及一些个人的思考。
+
+除了记录问题之外，也实现了一个[环境决策系统](https://github.com/Chestnut-F/ScenarioDecisionSystem)。主要目的是方便的在上面测试性能优化方案，暂时并没有工程应用价值，也缺乏编辑方案，放在这里仅供参考。
+
+## 问题分析
+
+虚幻的EQS是一个AISubSystem，每帧Tick阶段遍历注册的EnvQuery，针对每个EnvQuery进行生成和测试两个阶段任务。两阶段任务全部于主线程执行。UE提供了诸如射线检测，导航寻路等环境查询测试器，单次的射线检测和导航都是不小的性能消耗，而EQS系统点的生成数量可以由策划来配置，性能消耗时间是点的数量*单次测试器消耗。
+
+综上所述，最终结果是虚幻4的EQS系统性能非常糟糕。
+
+## 初步优化
+
+首先最重要的是要尽可能减少消耗高的EnvQuery的查询数量。但是除此之外，程序这边还是有一些可以做的事情，可以快速降低EQS的性能消耗。
+
+### 分帧策略
+
+虚幻的EQS系统对测试器使用了分帧策略，具体实现可以参考UEnvQueryManager::Tick()函数和FEnvQueryInstance::FItemIterator结构。这里的设计思路其实很独特，由于测试器是需要由业务Override的，如果遇到一个需要RunTest数量超级多的测试器，Manager外部是很难进行超时打断的。所以虚幻对迭代器进行了魔改，迭代器中间带一个终止时间戳，重载bool运算符来实现迭代器终止。大致代码如下：
+
+```
+struct FConstItemIterator
+{
+    FConstItemIterator(FEnvQueryInstance& QueryInstance, int32 StartingItemIndex = INDEX_NONE)
+		: Instance(QueryInstance)
+		, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
+	{
+        // ...
+	}
+
+protected:
+    FEnvQueryInstance& Instance;
+    int32 CurrentItem;
+};
+
+struct FItemIterator : public FConstItemIterator
+{
+    FItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
+	    : FConstItemIterator(QueryInstance, StartingItemIndex)
+{
+	check(QueryTest);
+
+	CachedFilterOp = QueryTest->MultipleContextFilterOp.GetIntValue();
+	CachedScoreOp = QueryTest->MultipleContextScoreOp.GetIntValue();
+	bIsFiltering = (QueryTest->TestPurpose == EEnvTestPurpose::Filter) || (QueryTest->TestPurpose == EEnvTestPurpose::FilterAndScore);
+
+	Deadline = QueryInstance.CurrentStepTimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.CurrentStepTimeLimit) : -1.0;
+	InitItemScore();
+}
+
+    FORCEINLINE explicit operator bool() const
+    {
+        return CurrentItem < Instance.Items.Num() && !Instance.bFoundSingleResult && (Deadline < 0 || FPlatformTime::Seconds() < Deadline);
+    }
+
+protected:
+	double Deadline;
+};
+```
+
+实际的分帧配置可以在GameConfig文件中进行配置，属性名是MaxAllowedTestingTime，单位是s。UE默认是0.01s也就是10ms，这个默认值需要改掉，否则游戏中会经常出现卡顿。
+
+```
+UCLASS(config = Game)
+class UEnvQueryManager 
+{
+	/** how long are we allowed to test per update, in seconds. */
+	UPROPERTY(config)
+	float MaxAllowedTestingTime;
+};
+```
+
+### 投影
+
+大部分环境查询的生成器都是继承于UEnvQueryGenerator_ProjectedPoints的，该类的核心函数是ProjectAndFilterNavPoints，作用是把生成的点投影到地面上，代码如下：
+
+```
+void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const
+{
+	const ANavigationData* NavData = nullptr;
+	if (ProjectionData.TraceMode != EEnvQueryTrace::None)
+	{
+		NavData = FEQSHelpers::FindNavigationDataForQuery(QueryInstance);
+	}
+
+	const UObject* Querier = QueryInstance.Owner.Get();
+	if (NavData && Querier && (ProjectionData.TraceMode == EEnvQueryTrace::Navigation))
+	{
+		FEQSHelpers::RunNavProjection(*NavData, *Querier, ProjectionData, Points, FEQSHelpers::ETraceMode::Discard);
+	}
+
+	if (ProjectionData.TraceMode == EEnvQueryTrace::GeometryByChannel || ProjectionData.TraceMode == EEnvQueryTrace::GeometryByProfile)
+	{
+		FEQSHelpers::RunPhysProjection(QueryInstance.World, ProjectionData, Points);
+	}
+}
+```
+
+代码里可以发现，如果配置的投影模式是Geometry，那生成器会执行RunPhysProjection，这里面的代码稍微有点多，所以直接说结论：RunPhysProjection是真的会向地面打射线的，而且是每个生成的点都会打，性能消耗非常恐怖，千万不要用（吐槽一下，这种功能真的不能开放给策划随便配置吧）。
+
+如果确实有需求，应该使用Navigation模式，至少Recast只是遍历临近的tile找到距离投影点最近的，性能消耗友好很多。这里由引入了第二个坑就是Extent配置，该配置用于决策在遍历临近的tile时应该遍历多大的范围，正常都是直上直下就足够了，配置大一点那性能消耗都是O(MN)的，需要千万小心（再次吐槽，Extent的配置竟然也开放给策划随便配置了）。
+
+### 导航
+
+对环境查询哪里是存在可达路径是很核心的需求，虚幻的EQS提供了UEnvQueryTest_Pathfinding测试器用来根据NavCost和可达与否对点进行过滤和评分。遍历每个点进行一次A*寻路的消耗可以想到是很恐怖的，这里可以用批处理的思路来解决这个性能问题。
+
+如果游戏中使用的RecastNavMesh的话（大部分UE项目应该都是直接用的，默认就是），RecastNavMesh提供了接口GetPolysWithinPathingDistance可以得到由起点周围自定义范围得所有NavMeshPolys，以及由起点抵达这些Polys的距离，因此可以直接获取Polys后，直接直接遍历查询点的Distance即可。至于投影找到NodeRef这件事，Generator_ProjectedPoints已经做过了，所以性能消耗会非常友好。
+
+说白了就是查一次A*更快，查N次直接把数据全部预处理完更快。
+
+## 深度优化
+
+深度优化更多是个人的一些思考，由于需要对EQS进行较大刀阔斧的改动，没有机会投入实战。可以参考个人实现的[环境决策系统](https://github.com/Chestnut-F/ScenarioDecisionSystem)，里面实现了下述中的部分优化思路。
+
+### SOA+并行处理数据
+
+这是可行的优化方案，可以参考我个人的实现。核心是Item本身使用SOA结构存储，提供Handle和View取代迭代器，Handle用于操作RawData，View管理Handle，因此可以很方便的实现ParallelFor等功能。
+
+实际测试结果是在点数量越多的情况下，优化效果越明显，当点数量较少的时候，需要改回使用FItemIterator进行迭代操作。
+
+这个方案也存在负面作用，ParallelFor后无法再对单个测试进行时间切分。
+
+### SIMD
+
+SIMD在使用FVector计算距离时不具备优势，在计算Dot时存在优势。也就是说实际上进行SIMD优化只会针对性能消耗本身非常低的Dot起作用，这并没有实际价值，可以参考[GDC文章](https://www.gdcvault.com/play/1021650/A-Data-oriented-Programming-Paradigm)。
+
+### 多线程
+
+多线程方案个人结论是在目前的UE引擎中并不可行，原因如下：
+
+1. 如果测试器可以由业务override，那多线程函数就没有办法由蓝图和脚本实现
+2. NavData可能是动态的
+3. PhysicsScene是动态的
+
+## 写在最后
+
+当策划对AI的表现需求提升时，EQS是不可回避的系统，它可以大福提升AI的智能表现。希望UE在未来可以提供一套解决方案。现阶段建议是项目组维护一套轻度的EQS系统，来规避可能出现的性能问题；或者如果是网游的话，也许可以试着让EQS跑在服务器上。
+
+笔者能力有限，文中如有错误，希望不吝指正。

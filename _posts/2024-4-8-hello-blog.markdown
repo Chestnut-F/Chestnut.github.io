@@ -1,7 +1,7 @@
 ---
 layout:     post
-title:      "我的独立博客开通的"
-subtitle:   "第一篇"
+title:      "【杂记】独立博客开通"
+subtitle:   ""
 date:       2024-04-09 01:01:13 +0800
 author:     "Chestnut"
 header-img: 'img/bg-stardew-valley.jpg'

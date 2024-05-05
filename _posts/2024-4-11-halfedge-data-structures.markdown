@@ -1,12 +1,14 @@
 ---
 layout:     post
-title:      "如何检查Volume是否闭合？"
+title:      "【几何】Volume的性能问题记录"
+subtitle:   "网格体闭合检测"
 date:       2024-04-11 23:02:00 +0800
 author:     "Chestnut"
 header-img: 'img/bg-stardew-valley.jpg'
 tags:
     - 笔记
     - 虚幻
+    - 性能
 ---
 
 ## 前言
